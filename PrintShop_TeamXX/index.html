@@ -1,0 +1,2810 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>University Print Hub 3D | مركز الطباعة الجامعي الذكي</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Fira+Code:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  
+  <!-- Local Three.js with CDN Fallback -->
+  <script src="/three.min.js"></script>
+  <script>
+    if (typeof THREE === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+    }
+  </script>
+
+  <style>
+    :root {
+      --bg-dark: #060913;
+      --card-bg: rgba(13, 21, 38, 0.72);
+      --card-border: rgba(0, 242, 254, 0.18);
+      --card-hover: rgba(0, 242, 254, 0.45);
+      --neon-cyan: #00f2fe;
+      --neon-blue: #3b82f6;
+      --neon-purple: #9333ea;
+      --neon-magenta: #ec4899;
+      --neon-green: #10b981;
+      --neon-amber: #f59e0b;
+      --neon-red: #ef4444;
+      --text-white: #ffffff;
+      --text-muted: #94a3b8;
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --glow-cyan: 0 0 25px rgba(0, 242, 254, 0.25);
+      --glow-purple: 0 0 25px rgba(147, 51, 234, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Cairo', 'Outfit', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-white);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* 3D Background Canvas */
+    #bgCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .app-wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px 28px 60px;
+    }
+
+    .code-font {
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* Glassmorphism Cards */
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+      position: relative;
+    }
+
+    .glass-card:hover {
+      border-color: var(--card-hover);
+      box-shadow: 0 14px 40px rgba(0, 242, 254, 0.12);
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 30px;
+      margin-bottom: 24px;
+    }
+
+    .brand-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .brand-cube {
+      width: 58px;
+      height: 58px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #00f2fe, #9333ea);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      box-shadow: 0 0 30px rgba(0, 242, 254, 0.4);
+      transform-style: preserve-3d;
+      animation: floatCube 4s ease-in-out infinite;
+    }
+
+    @keyframes floatCube {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-6px) rotate(4deg); }
+    }
+
+    .brand-text h1 {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 40%, var(--neon-cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-text p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: var(--neon-green);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .live-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--neon-green);
+      box-shadow: 0 0 12px var(--neon-green);
+      animation: pulseDot 2s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.3; transform: scale(0.85); }
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      outline: none;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-cyan {
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      color: white;
+      box-shadow: 0 4px 18px rgba(0, 114, 255, 0.35);
+    }
+    .btn-cyan:hover {
+      box-shadow: 0 6px 24px rgba(0, 198, 255, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .btn-purple {
+      background: linear-gradient(135deg, #a855f7, #6366f1);
+      color: white;
+      box-shadow: 0 4px 18px rgba(168, 85, 247, 0.35);
+    }
+    .btn-purple:hover {
+      box-shadow: 0 6px 24px rgba(168, 85, 247, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-white);
+    }
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--neon-cyan);
+    }
+
+    .btn-amber {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+    }
+    .btn-amber:hover {
+      background: rgba(245, 158, 11, 0.28);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #f87171;
+    }
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    /* Metrics Bar (Executive Eco & Financial Analytics) */
+    .metrics-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .metrics-bar { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .metric-card {
+      background: rgba(13, 21, 38, 0.55);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.2s;
+    }
+
+    .metric-card:hover {
+      border-color: var(--neon-cyan);
+      transform: translateY(-2px);
+    }
+
+    .metric-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .metric-data h4 {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .metric-val {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-white);
+    }
+
+    /* Main Grid */
+    .grid-layout {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .col-12 { grid-column: span 12; }
+    .col-8 { grid-column: span 8; }
+    .col-7 { grid-column: span 7; }
+    .col-6 { grid-column: span 6; }
+    .col-5 { grid-column: span 5; }
+    .col-4 { grid-column: span 4; }
+
+    @media (max-width: 1024px) {
+      .col-8, .col-7, .col-6, .col-5, .col-4 { grid-column: span 12; }
+    }
+
+    /* Section Headers inside Cards */
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .card-heading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .tag-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(0, 242, 254, 0.12);
+      border: 1px solid rgba(0, 242, 254, 0.35);
+      color: var(--neon-cyan);
+    }
+
+    /* 3D Circular Queue Canvas Container */
+    .three-canvas-wrap {
+      width: 100%;
+      height: 290px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      position: relative;
+      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.8) 0%, rgba(6, 9, 19, 0.95) 100%);
+      border: 1px solid rgba(0, 242, 254, 0.2);
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.7);
+    }
+
+    #queue3DCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+
+    #queue3DCanvas:active {
+      cursor: grabbing;
+    }
+
+    .canvas-overlay-hint {
+      position: absolute;
+      bottom: 10px;
+      left: 12px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.5);
+      pointer-events: none;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    /* Form Fields */
+    .field-group {
+      margin-bottom: 14px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .field-input, .field-select {
+      width: 100%;
+      background: rgba(6, 9, 19, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: white;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .field-input:focus, .field-select:focus {
+      outline: none;
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 12px rgba(0, 242, 254, 0.25);
+    }
+
+    /* 2D Circular Queue Slot Matrix */
+    .queue-matrix {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 650px) {
+      .queue-matrix { grid-template-columns: repeat(5, 1fr); }
+    }
+
+    .matrix-slot {
+      aspect-ratio: 1;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(6, 9, 19, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+
+    .matrix-slot.empty {
+      opacity: 0.45;
+    }
+
+    .matrix-slot.occupied {
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.15), rgba(147, 51, 234, 0.15));
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 14px rgba(0, 242, 254, 0.2);
+    }
+
+    .matrix-slot.is-front {
+      border: 2px solid var(--neon-green) !important;
+      background: rgba(16, 185, 129, 0.2) !important;
+    }
+
+    .matrix-slot.is-rear {
+      border: 2px solid var(--neon-purple) !important;
+      background: rgba(147, 51, 234, 0.25) !important;
+    }
+
+    .slot-idx-num {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .slot-job-badge {
+      font-size: 11px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .slot-marker-f, .slot-marker-r {
+      position: absolute;
+      top: -6px;
+      font-size: 8px;
+      font-weight: 900;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+    .slot-marker-f { right: -2px; background: var(--neon-green); color: #000; }
+    .slot-marker-r { left: -2px; background: var(--neon-purple); color: #fff; }
+
+    /* Linked Lists Horizontal Node Chains */
+    .nodes-scroll-viewport {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 12px 6px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 242, 254, 0.3) transparent;
+    }
+
+    .chain-node {
+      background: rgba(6, 9, 19, 0.8);
+      border: 1px solid rgba(0, 242, 254, 0.35);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      min-width: 155px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .chain-node:hover {
+      transform: translateY(-3px);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 8px 24px rgba(0, 242, 254, 0.25);
+    }
+
+    .node-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .node-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .node-pointer-tag {
+      font-size: 10px;
+      color: var(--neon-cyan);
+      margin-top: 6px;
+    }
+
+    .chain-arrow {
+      color: var(--neon-cyan);
+      font-size: 18px;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+
+    .null-indicator {
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* Stack Box */
+    .vertical-stack-box {
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 6px;
+      max-height: 250px;
+      overflow-y: auto;
+      border: 2px dashed rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      background: rgba(6, 9, 19, 0.4);
+    }
+
+    .stack-cell {
+      padding: 10px 14px;
+      border-radius: 6px;
+      background: rgba(0, 242, 254, 0.08);
+      border: 1px solid rgba(0, 242, 254, 0.25);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .stack-cell.top-cell {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: rgba(245, 158, 11, 0.6);
+      font-weight: 800;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.2);
+    }
+
+    /* Services Grid Cards */
+    .services-3card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .services-3card-grid { grid-template-columns: 1fr; }
+    }
+
+    .serv-card {
+      background: rgba(6, 9, 19, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.25s;
+    }
+
+    .serv-card:hover {
+      border-color: var(--neon-cyan);
+      transform: translateY(-2px);
+    }
+
+    /* Interactive Holographic Ticket Modal */
+    .ticket-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .ticket-3d-card {
+      background: linear-gradient(135deg, rgba(13, 21, 38, 0.95), rgba(6, 9, 19, 0.95));
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 50px rgba(0, 242, 254, 0.35);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 440px;
+      padding: 28px;
+      position: relative;
+      animation: popTicket 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popTicket {
+      from { transform: scale(0.85) translateY(20px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    /* Print Simulation Overlay */
+    .simulation-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(6, 9, 19, 0.85);
+      backdrop-filter: blur(12px);
+      z-index: 10000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sim-box {
+      background: var(--card-bg);
+      border: 1px solid var(--neon-cyan);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      width: 90%;
+      max-width: 500px;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(0, 242, 254, 0.3);
+    }
+
+    .sim-progress-track {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 20px 0;
+      position: relative;
+    }
+
+    .sim-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+      transition: width 0.05s linear;
+    }
+
+    /* Terminal Logs */
+    .log-box {
+      background: #040711;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      height: 170px;
+      overflow-y: auto;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .log-row {
+      margin-bottom: 3px;
+      display: flex;
+      gap: 10px;
+    }
+    .lr-time { color: #64748b; }
+    .lr-info { color: var(--neon-cyan); }
+    .lr-ok { color: var(--neon-green); }
+    .lr-err { color: #f87171; }
+
+    /* Floating Toast */
+    .toast-rack {
+      position: fixed;
+      bottom: 24px;
+      left: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 10001;
+    }
+
+    .app-toast {
+      padding: 12px 20px;
+      border-radius: var(--radius-md);
+      background: rgba(13, 21, 38, 0.95);
+      border: 1px solid var(--neon-cyan);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: toastIn 0.25s ease;
+      min-width: 290px;
+    }
+    @keyframes toastIn {
+      from { transform: translateX(-40px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Dev Team 3D Modal */
+    .dev-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(4, 7, 17, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      z-index: 10002;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .dev-modal-container {
+      background: linear-gradient(135deg, rgba(13, 21, 38, 0.96), rgba(6, 9, 19, 0.98));
+      border: 1px solid rgba(0, 242, 254, 0.35);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 0 60px rgba(0, 242, 254, 0.25), 0 20px 50px rgba(0, 0, 0, 0.8);
+      width: 100%;
+      max-width: 1120px;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 34px;
+      position: relative;
+      animation: popDevModal 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popDevModal {
+      from { transform: scale(0.9) translateY(30px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .dev-team-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .dev-team-grid { grid-template-columns: 1fr; }
+    }
+
+    .dev-card-3d {
+      background: rgba(13, 21, 38, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      padding: 26px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      transition: transform 0.15s ease-out, border-color 0.3s, box-shadow 0.3s;
+      transform-style: preserve-3d;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .dev-card-3d:hover {
+      border-color: var(--neon-cyan);
+      box-shadow: 0 15px 35px rgba(0, 242, 254, 0.2);
+    }
+
+    .dev-card-3d.leader-card {
+      border: 1.5px solid rgba(245, 158, 11, 0.55);
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.08) 0%, rgba(13, 21, 38, 0.75) 100%);
+      box-shadow: 0 10px 30px rgba(245, 158, 11, 0.15);
+    }
+
+    .dev-card-3d.leader-card:hover {
+      border-color: #f59e0b;
+      box-shadow: 0 16px 45px rgba(245, 158, 11, 0.3);
+    }
+
+    .dev-avatar-wrapper {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      margin-bottom: 16px;
+      position: relative;
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(147, 51, 234, 0.2));
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 20px rgba(0, 242, 254, 0.3);
+    }
+
+    .leader-card .dev-avatar-wrapper {
+      border-color: #f59e0b;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(234, 88, 12, 0.25));
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
+    }
+
+    .leader-crown-badge {
+      position: absolute;
+      top: -12px;
+      padding: 3px 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #f59e0b, #d97706);
+      color: #000;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    }
+
+    .dev-name {
+      font-size: 19px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .dev-title-role {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--neon-cyan);
+      margin-bottom: 14px;
+    }
+
+    .leader-card .dev-title-role {
+      color: #fbbf24;
+    }
+
+    .dev-responsibilities {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 16px;
+      text-align: right;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.28);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .dev-tasks-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .dev-tasks-list li {
+      margin-bottom: 6px;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .dev-skills-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .skill-chip {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-white);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background 3D Space Canvas -->
+  <canvas id="bgCanvas"></canvas>
+
+  <div class="app-wrapper">
+
+    <!-- Top Executive Header -->
+    <header class="glass-card">
+      <div class="brand-title-wrap">
+        <div class="brand-cube">🖨️</div>
+        <div class="brand-text">
+          <h1>University Print Hub 3D | مركز الطباعة الجامعي الذكي</h1>
+          <p>نظام هياكل البيانات المتكامل بالـ ++C مع واجهة ثلاثية الأبعاد تفاعلية وحسابات ذكية</p>
+        </div>
+      </div>
+      <div class="header-controls">
+        <div class="status-badge" id="systemStatusBadge">
+          <span class="live-dot" id="systemStatusDot"></span>
+          <span id="systemStatusText">C++ Backend Online (8080)</span>
+        </div>
+        <button id="soundToggleBtn" class="btn btn-outline" onclick="toggleSound()">
+          🔊 صوت الطابعة: مشغّل
+        </button>
+        <button class="btn btn-outline" onclick="openDevTeamModal()" style="border-color: rgba(0, 242, 254, 0.4); background: rgba(0, 242, 254, 0.1); color: var(--neon-cyan);">
+          👥 فريق المطورين (Team)
+        </button>
+        <button class="btn btn-purple" onclick="loadDemoScenario()">
+          ⚡ تجربة تلقائية (Demo)
+        </button>
+        <button class="btn btn-danger" onclick="resetWholeSystem()">
+          🔄 إعادة تعيين
+        </button>
+      </div>
+    </header>
+
+    <!-- Executive Metrics & Eco Analytics -->
+    <div class="metrics-bar">
+      <div class="metric-card">
+        <div class="metric-icon" style="color: #38bdf8; background: rgba(56, 189, 248, 0.1);">💰</div>
+        <div class="metric-data">
+          <h4>إجمالي الإيرادات المحصلة</h4>
+          <div class="metric-val code-font" id="metricRevenue">0 EGP</div>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon" style="color: #a855f7; background: rgba(168, 85, 247, 0.1);">📄</div>
+        <div class="metric-data">
+          <h4>إجمالي الصفحات المطبوعة</h4>
+          <div class="metric-val code-font" id="metricPages">0 صفحة</div>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.1);">🌱</div>
+        <div class="metric-data">
+          <h4>مؤشر الاستدامة والأثر البيئي</h4>
+          <div class="metric-val code-font" id="metricEco">99.4% كفاءة</div>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.1);">⏳</div>
+        <div class="metric-data">
+          <h4>الطلبات في طابور الانتظار</h4>
+          <div class="metric-val code-font" id="metricQueueCount">0 / 20</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN SECTION: 3D Holographic Queue & Submission Terminal -->
+    <div class="grid-layout">
+      
+      <!-- Interactive 3D Circular Queue Canvas -->
+      <div class="glass-card col-7">
+        <div class="card-top">
+          <div class="card-heading">
+            <span>🌐 طابور الانتظار الهولوغرافي ثلاثي الأبعاد (3D Circular Queue)</span>
+            <span class="tag-badge">Circular Array (20 Slots)</span>
+          </div>
+          <button class="btn btn-cyan btn-sm" onclick="triggerProcessJob()">
+            ⚙️ معالجة وطباعة الطلب التالي (FIFO)
+          </button>
+        </div>
+
+        <!-- 3D Viewport -->
+        <div class="three-canvas-wrap">
+          <canvas id="queue3DCanvas"></canvas>
+          <div class="canvas-overlay-hint">💡 اسحب بالماوس لتدوير الطابور 360° | المؤشر الأخضر = FRONT | البنفسجي = REAR</div>
+        </div>
+
+        <!-- 2D Slot Matrix for quick glance -->
+        <div style="margin-top: 14px;">
+          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-bottom:6px;">
+            <span>مخطط خانات المصفوفة الدائرية الـ 20:</span>
+            <span id="queueCapacityLabel" class="code-font">الطلبات: 0 / 20</span>
+          </div>
+          <div class="queue-matrix" id="queueMatrix">
+            <!-- 20 slots dynamically injected -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Job Submission Terminal -->
+      <div class="glass-card col-5">
+        <div class="card-top">
+          <div class="card-heading">
+            <span>📥 نافذة تقديم طلب طباعة (Submit Print Job)</span>
+            <span class="tag-badge">Unit Price Capture</span>
+          </div>
+        </div>
+
+        <form id="jobSubmitForm" onsubmit="handleJobSubmit(event)">
+          <div class="field-group">
+            <label class="field-label">رقم العميل (Customer ID)</label>
+            <input type="number" id="jobCustIdInput" class="field-input code-font" placeholder="مثال: 11" required>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">نوع خدمة الطباعة المطلوبة</label>
+            <select id="jobServSelect" class="field-select" onchange="calcLivePrice()">
+              <option value="1">1: Black-and-white (أبيض وأسود)</option>
+              <option value="2">2: Colour (ألوان)</option>
+              <option value="3">3: Photo printing (طباعة صور فوتوغرافية)</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">عدد الصفحات (Page Count)</label>
+            <input type="number" id="jobPagesInput" class="field-input code-font" min="1" value="4" required oninput="calcLivePrice()">
+          </div>
+
+          <div style="background: rgba(0, 242, 254, 0.05); border: 1px dashed rgba(0, 242, 254, 0.3); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; color: var(--text-muted);">السعر المجمد المحسوب للطلب:</span>
+            <span id="livePriceDisplay" class="code-font" style="font-size: 18px; font-weight: 900; color: var(--neon-cyan);">8 EGP</span>
+          </div>
+
+          <button type="submit" class="btn btn-cyan" style="width: 100%; justify-content: center;">
+            🚀 تأكيد وإدراج في طابور الانتظار (Enqueue)
+          </button>
+        </form>
+
+        <hr style="border:none; border-top:1px solid rgba(255,255,255,0.06); margin: 18px 0;">
+
+        <!-- Quick Ticket Lookup -->
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">💡 ميزة ذكية: اضغط على أي طلب في الطابور أو السجل لفتح <b>التذكرة الرقمية الذكية (Digital Ticket)</b> مع كود التحقق.</div>
+      </div>
+
+    </div>
+
+    <!-- DATA STRUCTURES ROW 2: Customer Singly Linked List & Price Undo Stack -->
+    <div class="grid-layout">
+      
+      <!-- Customer Singly Linked List -->
+      <div class="glass-card col-7">
+        <div class="card-top">
+          <div class="card-heading">
+            <span>👥 قاعدة العملاء (Customer Singly Linked List)</span>
+            <span class="tag-badge">Singly Linked List</span>
+          </div>
+        </div>
+
+        <form onsubmit="handleCustomerRegister(event)" style="display: flex; gap: 10px; margin-bottom: 14px;">
+          <input type="number" id="newCustId" class="field-input code-font" placeholder="الرقم ID" style="width: 110px;" required>
+          <input type="text" id="newCustName" class="field-input" placeholder="اسم الطالب / العميل" style="flex:1;" required>
+          <button type="submit" class="btn btn-cyan" style="white-space: nowrap;">
+            ➕ تسجيل
+          </button>
+        </form>
+
+        <!-- Search Bar -->
+        <div style="display:flex; gap:8px; margin-bottom: 14px;">
+          <input type="number" id="searchIdInput" class="field-input code-font" placeholder="بحث بالـ ID عن عميل مسجل...">
+          <button class="btn btn-outline" type="button" onclick="searchCustomer()">بحث 🔍</button>
+        </div>
+        <div id="searchFeedback" style="font-size: 13px; margin-bottom: 10px;"></div>
+
+        <!-- Node Chain -->
+        <label class="field-label">تمثيل العقد المتسلسلة والمؤشرات في الذاكرة (Memory Nodes & Next Pointers):</label>
+        <div class="nodes-scroll-viewport" id="customerNodesChain">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Price Stack (Array Stack) -->
+      <div class="glass-card col-5">
+        <div class="card-top">
+          <div class="card-heading">
+            <span>📚 مكدس التراجع عن الأسعار (Price Undo Stack)</span>
+            <span class="tag-badge">Array Stack (Cap 20)</span>
+          </div>
+          <button class="btn btn-amber btn-sm" onclick="triggerPriceUndo()">
+            ↩️ تراجع (Undo) <span id="stackCountBadge" class="code-font" style="margin-right:4px;">(0)</span>
+          </button>
+        </div>
+
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+          مكدس السجلات السابقة بنظام LIFO (Last In, First Out) مع مؤشر القمة (TOP Pointer):
+        </div>
+
+        <div class="vertical-stack-box" id="stackVisualCells">
+          <!-- Stack cells injected -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- DATA STRUCTURES ROW 3: Completed History (Doubly Linked List) -->
+    <div class="glass-card" style="margin-bottom: 24px;">
+      <div class="card-top">
+        <div class="card-heading">
+          <span>📜 سجل المكتملات ثنائي الاتجاه (Completed History - Doubly Linked List)</span>
+          <span class="tag-badge">Doubly Linked List (Head & Tail)</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button id="dirOldestBtn" class="btn btn-outline btn-sm" onclick="switchHistoryDir('oldest')" style="background: rgba(0, 242, 254, 0.15); border-color: var(--neon-cyan);">
+            ⬅️ من الأقدم للأحدث (Head ➔ Tail)
+          </button>
+          <button id="dirNewestBtn" class="btn btn-outline btn-sm" onclick="switchHistoryDir('newest')">
+            ➡️ من الأحدث للأقدم (Tail ➔ Head)
+          </button>
+        </div>
+      </div>
+
+      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;" id="dirDescription">
+        استعراض السجل بالاتجاه الأمامي من مؤشر <code>Head</code> عبر روابط <code>next</code> إلى <code>Tail</code>:
+      </div>
+
+      <div class="nodes-scroll-viewport" id="historyNodesChain">
+        <!-- History nodes injected -->
+      </div>
+    </div>
+
+    <!-- SERVICES CATALOG (Fixed Array) -->
+    <div class="glass-card" style="margin-bottom: 24px;">
+      <div class="card-top">
+        <div class="card-heading">
+          <span>🏷️ قائمة الخدمات وتحديث الأسعار (Services Fixed Array)</span>
+          <span class="tag-badge">Fixed Array (3 Services)</span>
+        </div>
+      </div>
+      <div class="services-3card-grid" id="servicesGrid">
+        <div class="serv-card" id="servCard_1">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span class="code-font" style="font-size:12px; color:var(--neon-cyan);">ID: #1</span>
+              <span style="font-size:11px; color:var(--text-muted);">Array Index: 0</span>
+            </div>
+            <h3 style="font-size:16px; font-weight:800; color:#fff; margin-bottom:10px;">Black-and-white</h3>
+            <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:14px;">
+              <span class="code-font" id="servPriceVal_1" style="font-size:28px; font-weight:900; color:var(--neon-cyan);">2</span>
+              <span style="font-size:12px; color:var(--text-muted);">EGP / صفحة</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <input type="number" id="srvPriceInput_1" class="field-input code-font" placeholder="سعر جديد" min="1" 
+                   onkeydown="if(event.key==='Enter') applyPriceChange(1)"
+                   style="padding:6px 10px; font-size:13px; text-align:center;">
+            <button class="btn btn-outline btn-sm" onclick="applyPriceChange(1)" style="font-size:12px; padding:6px 12px; flex:1;">
+              تحديث
+            </button>
+          </div>
+        </div>
+
+        <div class="serv-card" id="servCard_2">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span class="code-font" style="font-size:12px; color:var(--neon-cyan);">ID: #2</span>
+              <span style="font-size:11px; color:var(--text-muted);">Array Index: 1</span>
+            </div>
+            <h3 style="font-size:16px; font-weight:800; color:#fff; margin-bottom:10px;">Colour</h3>
+            <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:14px;">
+              <span class="code-font" id="servPriceVal_2" style="font-size:28px; font-weight:900; color:var(--neon-cyan);">5</span>
+              <span style="font-size:12px; color:var(--text-muted);">EGP / صفحة</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <input type="number" id="srvPriceInput_2" class="field-input code-font" placeholder="سعر جديد" min="1" 
+                   onkeydown="if(event.key==='Enter') applyPriceChange(2)"
+                   style="padding:6px 10px; font-size:13px; text-align:center;">
+            <button class="btn btn-outline btn-sm" onclick="applyPriceChange(2)" style="font-size:12px; padding:6px 12px; flex:1;">
+              تحديث
+            </button>
+          </div>
+        </div>
+
+        <div class="serv-card" id="servCard_3">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span class="code-font" style="font-size:12px; color:var(--neon-cyan);">ID: #3</span>
+              <span style="font-size:11px; color:var(--text-muted);">Array Index: 2</span>
+            </div>
+            <h3 style="font-size:16px; font-weight:800; color:#fff; margin-bottom:10px;">Photo printing</h3>
+            <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:14px;">
+              <span class="code-font" id="servPriceVal_3" style="font-size:28px; font-weight:900; color:var(--neon-cyan);">10</span>
+              <span style="font-size:12px; color:var(--text-muted);">EGP / صفحة</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <input type="number" id="srvPriceInput_3" class="field-input code-font" placeholder="سعر جديد" min="1" 
+                   onkeydown="if(event.key==='Enter') applyPriceChange(3)"
+                   style="padding:6px 10px; font-size:13px; text-align:center;">
+            <button class="btn btn-outline btn-sm" onclick="applyPriceChange(3)" style="font-size:12px; padding:6px 12px; flex:1;">
+              تحديث
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE TERMINAL CONSOLE -->
+    <div class="glass-card">
+      <div class="card-top">
+        <div class="card-heading">
+          <span>🖥️ شاشة الطرفية الحية (Live C++ System Console)</span>
+          <span class="tag-badge">Socket & HTTP Event Stream</span>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="clearLogsView()">مسح الطرفية</button>
+      </div>
+      <div class="log-box" id="terminalLogBox">
+        <div class="log-row">
+          <span class="lr-time">[00:00:00]</span>
+          <span class="lr-info">University Print Hub 3D Initialized. Ready for operations.</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MEET THE DEVELOPERS 3D MODAL -->
+  <div class="dev-modal-overlay" id="devTeamModal" onclick="closeDevTeamModal(event)">
+    <div class="dev-modal-container" onclick="event.stopPropagation()">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+        <div>
+          <span style="font-size: 11px; font-weight: 800; color: var(--neon-cyan); letter-spacing: 1.5px; text-transform: uppercase;">
+            PROJECT ARCHITECTS & CORE SYSTEM DEVELOPERS
+          </span>
+          <h2 style="font-size: 26px; font-weight: 900; color: #fff; margin-top: 4px;">
+            👥 فريق العمل والمطورين (Team Credits)
+          </h2>
+          <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">
+            فريق طلاب مشروع هياكل البيانات (Data Structures) | تقسيم المهام والمسؤوليات
+          </p>
+        </div>
+        <button onclick="closeDevTeamModal()" style="background: none; border: none; color: var(--text-muted); font-size: 26px; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-muted)'">✕</button>
+      </div>
+
+      <div class="dev-team-grid">
+        
+        <!-- CARD 1: TEAM LEADER -->
+        <div class="dev-card-3d leader-card" onmousemove="handleDevCardTilt(event, this)" onmouseleave="resetDevCardTilt(this)">
+          <div class="dev-avatar-wrapper">
+            <span class="leader-crown-badge">👑 Team Leader</span>
+            👨‍💻
+          </div>
+          <div class="dev-name" id="leaderNameDisplay">Eng. Mohamed Ahmed (El-Goker)</div>
+          <div class="dev-title-role">Team Leader & Lead System Architect</div>
+          <div class="dev-responsibilities">
+            <ul class="dev-tasks-list">
+              <li><span>💎</span> <span><b>إدارة وقيادة المشروع:</b> تخطيط المعمارية وهندسة تكامل هياكل البيانات.</span></li>
+              <li><span>⚙️</span> <span><b>خادم الويب والواجهات:</b> بناء وتأمين C++ REST API Server وربطه بالواجهة.</span></li>
+              <li><span>📚</span> <span><b>مكدس الأسعار (PriceStack):</b> تنفيذ مكدس المصفوفة والتراجع اللانهائي (Undo Engine).</span></li>
+            </ul>
+          </div>
+          <div class="dev-skills-pills">
+            <span class="skill-chip">C++17</span>
+            <span class="skill-chip">Array Stack</span>
+            <span class="skill-chip">REST API</span>
+            <span class="skill-chip">Three.js</span>
+          </div>
+        </div>
+
+        <!-- CARD 2: MEMBER 2 -->
+        <div class="dev-card-3d" onmousemove="handleDevCardTilt(event, this)" onmouseleave="resetDevCardTilt(this)">
+          <div class="dev-avatar-wrapper">
+            ⚡
+          </div>
+          <div class="dev-name" id="member2NameDisplay">Eng. Fouad El-Kawabri</div>
+          <div class="dev-title-role">Core Data Structures Engineer</div>
+          <div class="dev-responsibilities">
+            <ul class="dev-tasks-list">
+              <li><span>🔗</span> <span><b>قائمة العملاء (CustomerList):</b> بناء القائمة المتصلة الأحادية والتحقق من عدم تكرار الـ ID.</span></li>
+              <li><span>⏳</span> <span><b>طابور الانتظار (JobQueue):</b> خوارزمية الطابور الدائري (20 Slots) والـ Modulo Wraparound.</span></li>
+              <li><span>🛡️</span> <span><b>إدارة الذاكرة:</b> تأمين تخصيص وحذف الـ Pointers وتفريغ الـ Heap في الـ Destructor.</span></li>
+            </ul>
+          </div>
+          <div class="dev-skills-pills">
+            <span class="skill-chip">Singly Linked List</span>
+            <span class="skill-chip">Circular Queue</span>
+            <span class="skill-chip">Pointers</span>
+            <span class="skill-chip">OOP</span>
+          </div>
+        </div>
+
+        <!-- CARD 3: MEMBER 3 -->
+        <div class="dev-card-3d" onmousemove="handleDevCardTilt(event, this)" onmouseleave="resetDevCardTilt(this)">
+          <div class="dev-avatar-wrapper">
+            🚀
+          </div>
+          <div class="dev-name" id="member3NameDisplay">Eng. Ahmed Tarek</div>
+          <div class="dev-title-role">Interactive Systems & QA Engineer</div>
+          <div class="dev-responsibilities">
+            <ul class="dev-tasks-list">
+              <li><span>📜</span> <span><b>سجل المكتملات (JobHistory):</b> القائمة المتصلة الثنائية بمؤشري Head و Tail.</span></li>
+              <li><span>⇄</span> <span><b>الاستعراض ثنائي الاتجاه:</b> تتبع السجل من الأقدم للأحدث ومن الأحدث للأقدم.</span></li>
+              <li><span>🧪</span> <span><b>الجودة والتحقق:</b> اختبار حالات الخطأ الـ 20 بالكامل ومحاكي الطباعة الذكي والتذاكر.</span></li>
+            </ul>
+          </div>
+          <div class="dev-skills-pills">
+            <span class="skill-chip">Doubly Linked List</span>
+            <span class="skill-chip">Unit Testing</span>
+            <span class="skill-chip">Web Audio API</span>
+            <span class="skill-chip">Memory Safety</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="margin-top: 24px; padding: 14px 18px; border-radius: var(--radius-sm); background: rgba(0, 242, 254, 0.05); border: 1px dashed rgba(0, 242, 254, 0.25); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <span style="font-size: 12.5px; color: var(--text-muted);">
+          🔒 <b>حماية الخصوصية:</b> تم تأمين وتشفير بيانات الفريق برمز أمان خاص لمنع التعديل غير المصرح به.
+        </span>
+        <button class="btn btn-outline btn-sm" onclick="openTeamAuthModal()" style="font-size: 12px; padding: 6px 14px; border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
+          🔒 تعديل الأسماء (محمي بكلمة مرور)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEAM PASSWORD AUTH MODAL -->
+  <div class="ticket-modal-overlay" id="teamAuthModal" onclick="closeTeamAuthModal(event)" style="z-index: 10005;">
+    <div class="ticket-3d-card" onclick="event.stopPropagation()" style="max-width: 420px; border-color: #f59e0b; box-shadow: 0 0 45px rgba(245, 158, 11, 0.3);">
+      <div style="text-align: center; margin-bottom: 18px;">
+        <div style="width: 58px; height: 58px; border-radius: 50%; background: rgba(245, 158, 11, 0.15); border: 2px solid #f59e0b; display: inline-flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 10px;">
+          🔐
+        </div>
+        <h3 style="font-size: 20px; font-weight: 900; color: #fff;">التحقق الأمني لقائد الفريق</h3>
+        <p style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">
+          لحماية الخصوصية ومنع أي تعديل غير مصرح به على بيانات الفريق، يرجى إدخال كلمة المرور:
+        </p>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">كلمة المرور الأمنية (Security Password)</label>
+        <input type="password" id="teamAuthInput" class="field-input code-font" placeholder="••••••••" 
+               onkeydown="if(event.key==='Enter') verifyTeamPassword()" style="text-align: center; letter-spacing: 2px; font-size: 16px;">
+        <div id="authErrorMsg" style="font-size: 12px; color: #f87171; margin-top: 8px; display: none; text-align: center; font-weight: 700;"></div>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 18px;">
+        <button class="btn btn-amber" onclick="verifyTeamPassword()" style="flex: 1; justify-content: center;">
+          🔓 تأكيد وإلغاء القفل
+        </button>
+        <button class="btn btn-outline" onclick="closeTeamAuthModal()" style="padding: 10px 14px;">
+          إلغاء
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEAM EDIT NAMES FORM MODAL -->
+  <div class="ticket-modal-overlay" id="teamEditModal" onclick="closeTeamEditModal(event)" style="z-index: 10006;">
+    <div class="ticket-3d-card" onclick="event.stopPropagation()" style="max-width: 480px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <h3 style="font-size: 19px; font-weight: 900; color: #fff;">✏️ تعديل بيانات أعضاء الفريق</h3>
+        <button onclick="closeTeamEditModal()" style="background: none; border: none; color: var(--text-muted); font-size: 22px; cursor: pointer;">✕</button>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">👑 ليدر التيم (Team Leader)</label>
+        <input type="text" id="editLeaderInput" class="field-input" placeholder="اسم قائد الفريق">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">⚡ العضو الثاني (Member 2)</label>
+        <input type="text" id="editMember2Input" class="field-input" placeholder="اسم العضو الثاني">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">🚀 العضو الثالث (Member 3)</label>
+        <input type="text" id="editMember3Input" class="field-input" placeholder="اسم العضو الثالث">
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-cyan" onclick="saveTeamNamesChanges()" style="flex: 1; justify-content: center;">
+          💾 حفظ وتطبيق التغييرات
+        </button>
+        <button class="btn btn-outline" onclick="closeTeamEditModal()" style="padding: 10px 16px;">
+          إلغاء
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIGITAL SMART PRINT TICKET MODAL -->
+  <div class="ticket-modal-overlay" id="ticketModal" onclick="closeTicketModal(event)">
+    <div class="ticket-3d-card" onclick="event.stopPropagation()">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+        <div>
+          <span style="font-size: 11px; font-weight: 800; color: var(--neon-cyan); letter-spacing: 1px;">UNIVERSITY PRINT SHOP</span>
+          <h2 style="font-size: 20px; font-weight: 900; color: #fff;" id="ticketJobTitle">تذكرة الطباعة #101</h2>
+        </div>
+        <button onclick="closeTicketModal()" style="background: none; border: none; color: var(--text-muted); font-size: 22px; cursor: pointer;">✕</button>
+      </div>
+
+      <div style="background: rgba(0, 0, 0, 0.4); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+          <span style="color: var(--text-muted);">رقم العميل:</span>
+          <span class="code-font" id="ticketCustId">11</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+          <span style="color: var(--text-muted);">نوع الخدمة:</span>
+          <span id="ticketServiceName">Black-and-white</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+          <span style="color: var(--text-muted);">عدد الصفحات:</span>
+          <span class="code-font" id="ticketPages">4</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+          <span style="color: var(--text-muted);">السعر المجمد وقت الطلب:</span>
+          <span class="code-font" id="ticketUnitPrice">2 EGP</span>
+        </div>
+        <hr style="border: none; border-top: 1px dashed rgba(255,255,255,0.1); margin: 10px 0;">
+        <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 800;">
+          <span style="color: #fff;">الإجمالي المستحق:</span>
+          <span class="code-font" style="color: var(--neon-cyan);" id="ticketTotal">8 EGP</span>
+        </div>
+      </div>
+
+      <!-- Simulated Barcode -->
+      <div style="text-align: center; margin-bottom: 18px;">
+        <div style="background: white; border-radius: 6px; padding: 10px; display: inline-block;">
+          <div style="display: flex; justify-content: center; gap: 3px; height: 35px; align-items: flex-end;">
+            <div style="width:3px; height:100%; background:#000;"></div>
+            <div style="width:2px; height:80%; background:#000;"></div>
+            <div style="width:5px; height:100%; background:#000;"></div>
+            <div style="width:1px; height:90%; background:#000;"></div>
+            <div style="width:4px; height:100%; background:#000;"></div>
+            <div style="width:2px; height:75%; background:#000;"></div>
+            <div style="width:6px; height:100%; background:#000;"></div>
+            <div style="width:3px; height:85%; background:#000;"></div>
+            <div style="width:2px; height:100%; background:#000;"></div>
+            <div style="width:4px; height:95%; background:#000;"></div>
+            <div style="width:2px; height:100%; background:#000;"></div>
+          </div>
+          <div class="code-font" style="font-size: 10px; color: #000; margin-top: 4px;" id="ticketBarcodeText">UP-JOB-101-VERIFIED</div>
+        </div>
+      </div>
+
+      <button class="btn btn-cyan" onclick="printTicketAction()" style="width: 100%; justify-content: center;">
+        🖨️ طباعة التذكرة الرقمية
+      </button>
+    </div>
+  </div>
+
+  <!-- PRINT PROCESS SIMULATION OVERLAY -->
+  <div class="simulation-overlay" id="simOverlay">
+    <div class="sim-box">
+      <div style="font-size: 40px; margin-bottom: 10px; animation: bounce 1s infinite alternate;">🖨️</div>
+      <h3 style="font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 6px;">جاري طباعة ومعالجة الطلب...</h3>
+      <p style="font-size: 13px; color: var(--text-muted);" id="simJobDesc">معالجة أقدم طلب في طابور الانتظار (FIFO)</p>
+      
+      <div class="sim-progress-track">
+        <div class="sim-progress-bar" id="simProgressBar"></div>
+      </div>
+
+      <div class="code-font" style="font-size: 14px; font-weight: 800; color: var(--neon-cyan);" id="simPercentText">0%</div>
+    </div>
+  </div>
+
+  <!-- Toasts container -->
+  <div class="toast-rack" id="toastRack"></div>
+
+  <!-- APPLICATION LOGIC & 3D GRAPHICS -->
+  <script>
+    // Clean initial system state (All structures zeroed out: 0 waiting tasks, 0 history, 0 revenue, 0 pages)
+    function createCleanSystemState() {
+      return {
+        services: [
+          { id: 1, name: "Black-and-white", price: 2 },
+          { id: 2, name: "Colour", price: 5 },
+          { id: 3, name: "Photo printing", price: 10 }
+        ],
+        customers: [],
+        queue: {
+          capacity: 20,
+          count: 0,
+          front: 0,
+          rear: -1,
+          slots: Array.from({ length: 20 }, (_, i) => ({
+            index: i,
+            isOccupied: false,
+            isFront: false,
+            isRear: false,
+            job: null
+          })),
+          items: []
+        },
+        history: {
+          count: 0,
+          oldestFirst: [],
+          newestFirst: []
+        },
+        undoStack: {
+          capacity: 20,
+          count: 0,
+          topIndex: -1,
+          items: []
+        }
+      };
+    }
+
+    // Interactive Demo Scenario State (loaded exclusively on clicking "تجربة تلقائية Demo")
+    function createDemoSystemState() {
+      return {
+        services: [
+          { id: 1, name: "Black-and-white", price: 3 },
+          { id: 2, name: "Colour", price: 5 },
+          { id: 3, name: "Photo printing", price: 10 }
+        ],
+        customers: [
+          { id: 11, name: "Mona Ali" },
+          { id: 12, name: "Omar Khaled" }
+        ],
+        queue: {
+          capacity: 20,
+          count: 2,
+          front: 0,
+          rear: 1,
+          slots: Array.from({ length: 20 }, (_, i) => {
+            if (i === 0) {
+              return {
+                index: 0,
+                isOccupied: true,
+                isFront: true,
+                isRear: false,
+                job: {
+                  jobId: 102,
+                  customerId: 11,
+                  customerName: "Mona Ali",
+                  serviceId: 2,
+                  serviceName: "Colour",
+                  pages: 2,
+                  unitPrice: 5,
+                  total: 10,
+                  timestamp: "10:15"
+                }
+              };
+            }
+            if (i === 1) {
+              return {
+                index: 1,
+                isOccupied: true,
+                isFront: false,
+                isRear: true,
+                job: {
+                  jobId: 103,
+                  customerId: 12,
+                  customerName: "Omar Khaled",
+                  serviceId: 3,
+                  serviceName: "Photo printing",
+                  pages: 1,
+                  unitPrice: 10,
+                  total: 10,
+                  timestamp: "10:16"
+                }
+              };
+            }
+            return {
+              index: i,
+              isOccupied: false,
+              isFront: false,
+              isRear: false,
+              job: null
+            };
+          }),
+          items: [
+            {
+              jobId: 102,
+              customerId: 11,
+              customerName: "Mona Ali",
+              serviceId: 2,
+              serviceName: "Colour",
+              pages: 2,
+              unitPrice: 5,
+              total: 10,
+              timestamp: "10:15"
+            },
+            {
+              jobId: 103,
+              customerId: 12,
+              customerName: "Omar Khaled",
+              serviceId: 3,
+              serviceName: "Photo printing",
+              pages: 1,
+              unitPrice: 10,
+              total: 10,
+              timestamp: "10:16"
+            }
+          ]
+        },
+        history: {
+          count: 1,
+          oldestFirst: [
+            {
+              jobId: 101,
+              customerId: 11,
+              customerName: "Mona Ali",
+              serviceId: 1,
+              serviceName: "Black-and-white",
+              pages: 4,
+              unitPrice: 2,
+              total: 8,
+              timestamp: "10:10"
+            }
+          ],
+          newestFirst: [
+            {
+              jobId: 101,
+              customerId: 11,
+              customerName: "Mona Ali",
+              serviceId: 1,
+              serviceName: "Black-and-white",
+              pages: 4,
+              unitPrice: 2,
+              total: 8,
+              timestamp: "10:10"
+            }
+          ]
+        },
+        undoStack: {
+          capacity: 20,
+          count: 1,
+          topIndex: 0,
+          items: [{ serviceId: 1, oldPrice: 2, newPrice: 3 }]
+        }
+      };
+    }
+
+    let appState = createCleanSystemState();
+    let isBackendConnected = false;
+    let nextJobId = 101;
+    let currentHistoryDir = 'oldest';
+    let soundEnabled = true;
+
+    // Web Audio Synthesizer (Realistic mechanical sounds with zero external files)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+
+        if (type === 'beep') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, now);
+          osc.frequency.exponentialRampToValueAtTime(440, now + 0.1);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.1);
+        } else if (type === 'print') {
+          // Noise burst + oscillator simulating stepper motor
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.linearRampToValueAtTime(320, now + 0.3);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        } else if (type === 'success') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(523.25, now); // C5
+          osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+          osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        }
+      } catch (e) {
+        console.warn('Audio not allowed yet:', e);
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('soundToggleBtn');
+      btn.innerText = soundEnabled ? '🔊 صوت الطابعة: مشغّل' : '🔇 صوت الطابعة: صامت';
+      btn.style.color = soundEnabled ? 'var(--neon-cyan)' : 'var(--text-muted)';
+    }
+
+    function pushLog(text, level = 'info') {
+      const box = document.getElementById('terminalLogBox');
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = 'log-row';
+      div.innerHTML = `<span class="lr-time">[${time}]</span> <span class="lr-${level}">${text}</span>`;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function toast(text, isError = false) {
+      const rack = document.getElementById('toastRack');
+      const t = document.createElement('div');
+      t.className = 'app-toast';
+      t.style.borderColor = isError ? '#f87171' : 'var(--neon-cyan)';
+      t.innerHTML = `<span>${isError ? '⚠️' : '✨'}</span><span>${text}</span>`;
+      rack.appendChild(t);
+      if (isError) playSound('beep'); else playSound('success');
+      setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transform = 'translateY(12px)';
+        setTimeout(() => t.remove(), 250);
+      }, 4000);
+    }
+
+    function clearLogsView() {
+      document.getElementById('terminalLogBox').innerHTML = '';
+      pushLog('Logs cleared.', 'info');
+    }
+
+    // ==========================================
+    // 3D BACKGROUND PARTICLES SCENE (Three.js)
+    // ==========================================
+    let bgScene, bgCamera, bgRenderer, particlesMesh;
+
+    function init3DBackground() {
+      const canvas = document.getElementById('bgCanvas');
+      bgScene = new THREE.Scene();
+      bgCamera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      bgCamera.position.z = 40;
+
+      bgRenderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+      bgRenderer.setSize(window.innerWidth, window.innerHeight);
+      bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Create Particle Stars / Constellation
+      const count = 350;
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+      for (let i = 0; i < count * 3; i++) {
+        positions[i] = (Math.random() - 0.5) * 120;
+      }
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+      const material = new THREE.PointsMaterial({
+        size: 1.2,
+        color: 0x00f2fe,
+        transparent: true,
+        opacity: 0.45
+      });
+
+      particlesMesh = new THREE.Points(geometry, material);
+      bgScene.add(particlesMesh);
+
+      function animate() {
+        requestAnimationFrame(animate);
+        particlesMesh.rotation.y += 0.0006;
+        particlesMesh.rotation.x += 0.0003;
+        bgRenderer.render(bgScene, bgCamera);
+      }
+      animate();
+
+      window.addEventListener('resize', () => {
+        bgCamera.aspect = window.innerWidth / window.innerHeight;
+        bgCamera.updateProjectionMatrix();
+        bgRenderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+
+    // ==========================================
+    // 3D HOLOGRAPHIC CIRCULAR QUEUE (Three.js)
+    // ==========================================
+    let queueScene, queueCamera, queueRenderer;
+    let slotMeshes = [];
+    let queueGroup;
+    let isDragging = false, prevMouseX = 0, prevMouseY = 0;
+
+    function init3DQueue() {
+      const canvas = document.getElementById('queue3DCanvas');
+      const w = canvas.parentElement.clientWidth;
+      const h = canvas.parentElement.clientHeight;
+
+      queueScene = new THREE.Scene();
+      queueCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+      queueCamera.position.set(0, 14, 24);
+      queueCamera.lookAt(0, 0, 0);
+
+      queueRenderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+      queueRenderer.setSize(w, h);
+      queueRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+      queueScene.add(ambientLight);
+
+      const pointLight = new THREE.PointLight(0x00f2fe, 1.8, 50);
+      pointLight.position.set(0, 10, 10);
+      queueScene.add(pointLight);
+
+      queueGroup = new THREE.Group();
+      queueScene.add(queueGroup);
+
+      // Create 20 pods in a circle
+      const radius = 8.5;
+      const totalSlots = 20;
+
+      for (let i = 0; i < totalSlots; i++) {
+        const angle = (i / totalSlots) * Math.PI * 2;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+
+        // Cylinder pod
+        const podGeo = new THREE.CylinderGeometry(0.85, 0.85, 0.5, 16);
+        const podMat = new THREE.MeshStandardMaterial({
+          color: 0x1e293b,
+          roughness: 0.3,
+          metalness: 0.8,
+          transparent: true,
+          opacity: 0.6
+        });
+        const pod = new THREE.Mesh(podGeo, podMat);
+        pod.position.set(x, 0, z);
+        pod.userData = { slotIndex: i };
+
+        // Outer glow ring
+        const ringGeo = new THREE.RingGeometry(0.9, 1.05, 24);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0x334155, side: THREE.DoubleSide });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = 0.26;
+        pod.add(ring);
+
+        queueGroup.add(pod);
+        slotMeshes.push({ pod, ring });
+      }
+
+      // Mouse Drag Controls
+      canvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        prevMouseX = e.clientX;
+        prevMouseY = e.clientY;
+      });
+
+      window.addEventListener('mouseup', () => isDragging = false);
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const deltaX = e.clientX - prevMouseX;
+        const deltaY = e.clientY - prevMouseY;
+        queueGroup.rotation.y += deltaX * 0.008;
+        queueCamera.position.y = Math.max(5, Math.min(25, queueCamera.position.y - deltaY * 0.08));
+        queueCamera.lookAt(0, 0, 0);
+        prevMouseX = e.clientX;
+        prevMouseY = e.clientY;
+      });
+
+      function renderLoop() {
+        requestAnimationFrame(renderLoop);
+        if (!isDragging) {
+          queueGroup.rotation.y += 0.003; // Gentle auto orbit
+        }
+        queueRenderer.render(queueScene, queueCamera);
+      }
+      renderLoop();
+
+      window.addEventListener('resize', () => {
+        const wrap = canvas.parentElement;
+        if (!wrap) return;
+        queueCamera.aspect = wrap.clientWidth / wrap.clientHeight;
+        queueCamera.updateProjectionMatrix();
+        queueRenderer.setSize(wrap.clientWidth, wrap.clientHeight);
+      });
+    }
+
+    function update3DQueuePods(queueData) {
+      if (!queueData || slotMeshes.length < 20) return;
+
+      queueData.slots.forEach(slot => {
+        const item = slotMeshes[slot.index];
+        if (!item) return;
+
+        if (slot.isOccupied) {
+          item.pod.material.color.setHex(0x00f2fe);
+          item.pod.material.opacity = 0.95;
+          item.pod.scale.set(1.15, 1.5, 1.15);
+
+          if (slot.isFront) {
+            item.ring.material.color.setHex(0x10b981); // Neon Green
+          } else if (slot.isRear) {
+            item.ring.material.color.setHex(0x9333ea); // Purple
+          } else {
+            item.ring.material.color.setHex(0x00f2fe);
+          }
+        } else {
+          item.pod.material.color.setHex(0x1e293b);
+          item.pod.material.opacity = 0.4;
+          item.pod.scale.set(1, 1, 1);
+          item.ring.material.color.setHex(0x334155);
+        }
+      });
+    }
+
+    // ==========================================
+    // DATA RENDERING & CONTROLLER
+    // ==========================================
+
+    function updateStatusBadge(connected) {
+      const badge = document.getElementById('systemStatusBadge');
+      const dot = document.getElementById('systemStatusDot');
+      const text = document.getElementById('systemStatusText');
+      if (!badge || !dot || !text) return;
+
+      if (connected) {
+        badge.style.background = 'rgba(16, 185, 129, 0.12)';
+        badge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+        badge.style.color = 'var(--neon-green)';
+        dot.style.background = 'var(--neon-green)';
+        dot.style.boxShadow = '0 0 12px var(--neon-green)';
+        text.innerText = 'C++ Backend Online (8080)';
+      } else {
+        badge.style.background = 'rgba(0, 242, 254, 0.12)';
+        badge.style.borderColor = 'rgba(0, 242, 254, 0.4)';
+        badge.style.color = 'var(--neon-cyan)';
+        dot.style.background = 'var(--neon-cyan)';
+        dot.style.boxShadow = '0 0 12px var(--neon-cyan)';
+        text.innerText = 'Cloud Interactive Mode (Vercel)';
+      }
+    }
+
+    function renderAll(state) {
+      if (!state) return;
+      renderMetrics(state);
+      renderServices(state.services);
+      renderCustomers(state.customers);
+      renderQueueMatrix(state.queue);
+      renderHistoryList(state.history);
+      renderStack(state.undoStack);
+      if (typeof update3DQueuePods === 'function') {
+        update3DQueuePods(state.queue);
+      }
+      calcLivePrice();
+    }
+
+    async function fetchAppState() {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const res = await fetch('/api/state', { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) throw new Error('API unreachable');
+        const data = await res.json();
+        appState = data;
+        isBackendConnected = true;
+        updateStatusBadge(true);
+        renderAll(appState);
+      } catch (e) {
+        // Backend offline or running on static hosting (like Vercel)
+        isBackendConnected = false;
+        updateStatusBadge(false);
+        renderAll(appState);
+      }
+    }
+
+    function renderMetrics(state) {
+      // Calculate revenue and pages from history + active queue
+      let totalRev = 0;
+      let totalPgs = 0;
+      
+      if (state.history && state.history.oldestFirst) {
+        state.history.oldestFirst.forEach(j => {
+          totalRev += j.total;
+          totalPgs += j.pages;
+        });
+      }
+
+      document.getElementById('metricRevenue').innerText = `${totalRev} EGP`;
+      document.getElementById('metricPages').innerText = `${totalPgs} صفحة`;
+      document.getElementById('metricQueueCount').innerText = `${state.queue.count} / ${state.queue.capacity}`;
+      
+      // Dynamic Eco Score
+      const ecoScore = Math.max(88, 100 - (totalPgs * 0.05)).toFixed(1);
+      document.getElementById('metricEco').innerText = `${ecoScore}% كفاءة`;
+    }
+
+    function renderServices(services) {
+      const grid = document.getElementById('servicesGrid');
+      if (!grid || !services) return;
+
+      const existingCards = grid.querySelectorAll('.serv-card');
+      // If cards are not created yet or count mismatch, construct them once
+      if (existingCards.length !== services.length) {
+        grid.innerHTML = '';
+        services.forEach(s => {
+          const card = document.createElement('div');
+          card.className = 'serv-card';
+          card.id = `servCard_${s.id}`;
+          card.innerHTML = `
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span class="code-font" style="font-size:12px; color:var(--neon-cyan);">ID: #${s.id}</span>
+                <span style="font-size:11px; color:var(--text-muted);">Array Index: ${s.id - 1}</span>
+              </div>
+              <h3 style="font-size:16px; font-weight:800; color:#fff; margin-bottom:10px;">${s.name}</h3>
+              <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:14px;">
+                <span class="code-font" id="servPriceVal_${s.id}" style="font-size:28px; font-weight:900; color:var(--neon-cyan);">${s.price}</span>
+                <span style="font-size:12px; color:var(--text-muted);">EGP / صفحة</span>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <input type="number" id="srvPriceInput_${s.id}" class="field-input code-font" placeholder="سعر جديد" min="1" 
+                     onkeydown="if(event.key==='Enter') applyPriceChange(${s.id})"
+                     style="padding:6px 10px; font-size:13px; text-align:center;">
+              <button class="btn btn-outline btn-sm" onclick="applyPriceChange(${s.id})" style="font-size:12px; padding:6px 12px; flex:1;">
+                تحديث
+              </button>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+      } else {
+        // If cards already exist, only update the displayed price value!
+        // Never wipe or touch the user's typed input field.
+        services.forEach(s => {
+          const priceDisplay = document.getElementById(`servPriceVal_${s.id}`);
+          if (priceDisplay && priceDisplay.innerText !== String(s.price)) {
+            priceDisplay.innerText = s.price;
+          }
+        });
+      }
+    }
+
+    function renderCustomers(customers) {
+      const chain = document.getElementById('customerNodesChain');
+      chain.innerHTML = '';
+
+      if (!customers || customers.length === 0) {
+        chain.innerHTML = '<div class="null-indicator">Head == nullptr (لا يوجد عملاء مسجلون)</div>';
+        return;
+      }
+
+      customers.forEach((c, idx) => {
+        const node = document.createElement('div');
+        node.className = 'chain-node';
+        // Simulated deterministic memory pointer for educational elegance
+        const simulatedAddress = '0x' + (0x7ffe0000 + c.id * 0x48).toString(16);
+        node.innerHTML = `
+          <div class="node-title">${c.name}</div>
+          <div class="node-subtitle code-font">Customer ID: #${c.id}</div>
+          <div class="node-pointer-tag code-font">Mem: ${simulatedAddress}</div>
+        `;
+        node.onclick = () => {
+          document.getElementById('jobCustIdInput').value = c.id;
+          toast(`تم تحديد العميل ${c.name} (#${c.id}) في نموذج الطلب`);
+        };
+        chain.appendChild(node);
+
+        const arrow = document.createElement('div');
+        arrow.className = 'chain-arrow';
+        arrow.innerText = '←';
+        chain.appendChild(arrow);
+      });
+
+      const nullBox = document.createElement('div');
+      nullBox.className = 'null-indicator code-font';
+      nullBox.innerText = 'NULL';
+      chain.appendChild(nullBox);
+    }
+
+    function renderQueueMatrix(queue) {
+      const grid = document.getElementById('queueMatrix');
+      grid.innerHTML = '';
+      document.getElementById('queueCapacityLabel').innerText = `الطلبات: ${queue.count} / ${queue.capacity}`;
+
+      queue.slots.forEach(slot => {
+        const div = document.createElement('div');
+        div.className = `matrix-slot ${slot.isOccupied ? 'occupied' : 'empty'} ${slot.isFront ? 'is-front' : ''} ${slot.isRear ? 'is-rear' : ''}`;
+        
+        let tags = '';
+        if (slot.isFront) tags += `<span class="slot-marker-f">F</span>`;
+        if (slot.isRear) tags += `<span class="slot-marker-r">R</span>`;
+
+        div.innerHTML = `
+          ${tags}
+          <span class="slot-idx-num code-font">${slot.index}</span>
+          <span class="slot-job-badge code-font">${slot.isOccupied ? '#' + slot.job.jobId : '-'}</span>
+        `;
+
+        if (slot.isOccupied) {
+          div.onclick = () => openTicketModal(slot.job);
+        }
+
+        grid.appendChild(div);
+      });
+    }
+
+    function switchHistoryDir(dir) {
+      currentHistoryDir = dir;
+      document.getElementById('dirOldestBtn').style.background = dir === 'oldest' ? 'rgba(0, 242, 254, 0.15)' : 'rgba(255, 255, 255, 0.05)';
+      document.getElementById('dirOldestBtn').style.borderColor = dir === 'oldest' ? 'var(--neon-cyan)' : 'rgba(255, 255, 255, 0.15)';
+      document.getElementById('dirNewestBtn').style.background = dir === 'newest' ? 'rgba(0, 242, 254, 0.15)' : 'rgba(255, 255, 255, 0.05)';
+      document.getElementById('dirNewestBtn').style.borderColor = dir === 'newest' ? 'var(--neon-cyan)' : 'rgba(255, 255, 255, 0.15)';
+
+      document.getElementById('dirDescription').innerHTML = dir === 'oldest'
+        ? 'استعراض السجل بالاتجاه الأمامي من مؤشر <code>Head</code> عبر روابط <code>next</code> إلى <code>Tail</code>:'
+        : 'استعراض السجل بالاتجاه العكسي من مؤشر <code>Tail</code> عبر روابط <code>prev</code> إلى <code>Head</code>:';
+
+      if (appState) renderHistoryList(appState.history);
+    }
+
+    function renderHistoryList(history) {
+      const chain = document.getElementById('historyNodesChain');
+      chain.innerHTML = '';
+      const list = currentHistoryDir === 'oldest' ? history.oldestFirst : history.newestFirst;
+
+      if (!list || list.length === 0) {
+        chain.innerHTML = '<div class="null-indicator">لا توجد طلبات مكتملة حتى الآن في السجل</div>';
+        return;
+      }
+
+      list.forEach((j, idx) => {
+        const node = document.createElement('div');
+        node.className = 'chain-node';
+        node.style.borderColor = 'rgba(147, 51, 234, 0.4)';
+        node.innerHTML = `
+          <div class="node-title">Job #${j.jobId}</div>
+          <div class="node-subtitle code-font">عميل: ${j.customerId} | ${j.serviceName}</div>
+          <div class="node-pointer-tag code-font" style="color:var(--neon-purple);">${j.pages} ص • EGP ${j.total}</div>
+        `;
+        node.onclick = () => openTicketModal(j);
+        chain.appendChild(node);
+
+        if (idx < list.length - 1) {
+          const arrow = document.createElement('div');
+          arrow.className = 'chain-arrow';
+          arrow.style.color = 'var(--neon-purple)';
+          arrow.innerText = '⇄';
+          chain.appendChild(arrow);
+        }
+      });
+    }
+
+    function renderStack(stack) {
+      const container = document.getElementById('stackVisualCells');
+      container.innerHTML = '';
+      document.getElementById('stackCountBadge').innerText = `(${stack.count})`;
+
+      if (!stack.items || stack.items.length === 0) {
+        container.innerHTML = '<div style="color:var(--text-muted); font-size:12px; text-align:center; padding:18px;">مكدس التراجع فارغ (Stack is Empty)</div>';
+        return;
+      }
+
+      stack.items.forEach((item, idx) => {
+        const isTop = idx === stack.topIndex;
+        const cell = document.createElement('div');
+        cell.className = `stack-cell ${isTop ? 'top-cell' : ''}`;
+        cell.innerHTML = `
+          <span>خدمة #${item.serviceId} (السعر السابق: ${item.oldPrice} EGP)</span>
+          <span class="code-font" style="font-size:11px;">${isTop ? '⬅️ TOP [' + idx + ']' : '[' + idx + ']'}</span>
+        `;
+        container.appendChild(cell);
+      });
+    }
+
+    function calcLivePrice() {
+      if (!appState) return;
+      const sId = parseInt(document.getElementById('jobServSelect').value);
+      const pages = parseInt(document.getElementById('jobPagesInput').value) || 0;
+      const serv = appState.services.find(s => s.id === sId);
+      if (serv && pages > 0) {
+        document.getElementById('livePriceDisplay').innerText = `${serv.price * pages} EGP (${pages} × ${serv.price})`;
+      } else {
+        document.getElementById('livePriceDisplay').innerText = '0 EGP';
+      }
+    }
+
+    // ==========================================
+    // API ACTIONS
+    // ==========================================
+
+    async function handleCustomerRegister(e) {
+      e.preventDefault();
+      const id = parseInt(document.getElementById('newCustId').value);
+      const name = document.getElementById('newCustName').value.trim();
+
+      if (!id || !name) {
+        toast('يرجى إدخال رقم ID واسم العميل', true);
+        return;
+      }
+
+      if (isBackendConnected) {
+        try {
+          const res = await fetch('/api/customer/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, name })
+          });
+          const data = await res.json();
+          if (data.success) {
+            toast(data.message);
+            pushLog(data.message, 'ok');
+            document.getElementById('newCustId').value = '';
+            document.getElementById('newCustName').value = '';
+            fetchAppState();
+            return;
+          } else {
+            toast(data.message, true);
+            pushLog(data.message, 'err');
+            return;
+          }
+        } catch (err) {
+          console.warn('Backend call failed, using client simulation');
+        }
+      }
+
+      // Client-side Singly Linked List simulation
+      const exists = appState.customers.some(c => c.id === id);
+      if (exists) {
+        toast(`خطأ: العميل رقم #${id} مسجل بالفعل!`, true);
+        pushLog(`[LINKED-LIST] Duplicate key rejection: Customer ID #${id} already exists`, 'err');
+        return;
+      }
+
+      appState.customers.push({ id, name });
+      document.getElementById('newCustId').value = '';
+      document.getElementById('newCustName').value = '';
+
+      toast(`تم تسجيل العميل "${name}" بنجاح في القائمة المتصلة (ID: #${id})`);
+      pushLog(`[LINKED-LIST] Node appended: Customer #${id} (${name}) -> next = nullptr`, 'ok');
+      playSound('success');
+      renderAll(appState);
+    }
+
+    async function searchCustomer() {
+      const id = parseInt(document.getElementById('searchIdInput').value);
+      const box = document.getElementById('searchFeedback');
+      if (!id) {
+        box.innerHTML = '<span style="color:#f87171;">الرجاء إدخال رقم ID صالح</span>';
+        return;
+      }
+
+      if (isBackendConnected) {
+        try {
+          const res = await fetch(`/api/customer/find?id=${id}`);
+          const data = await res.json();
+          if (data.success) {
+            box.innerHTML = `<span style="color:var(--neon-green);">✅ ${data.message}</span>`;
+            pushLog(data.message, 'ok');
+            return;
+          } else {
+            box.innerHTML = `<span style="color:#f87171;">❌ ${data.message}</span>`;
+            pushLog(data.message, 'err');
+            return;
+          }
+        } catch (e) {
+          console.warn('Backend search failed, fallback to client');
+        }
+      }
+
+      // Fallback search in appState.customers
+      const cust = appState.customers.find(c => c.id === id);
+      if (cust) {
+        box.innerHTML = `<span style="color:var(--neon-green);">✅ تم العثور على العميل: ${cust.name} (ID: #${cust.id})</span>`;
+        pushLog(`[SEARCH] Singly Linked List Traversal: Found #${cust.id} (${cust.name})`, 'ok');
+      } else {
+        box.innerHTML = `<span style="color:#f87171;">❌ العميل #${id} غير موجود في القائمة</span>`;
+        pushLog(`[SEARCH] Reached nullptr: Customer #${id} not found`, 'err');
+      }
+    }
+
+    async function handleJobSubmit(e) {
+      e.preventDefault();
+      const customerId = parseInt(document.getElementById('jobCustIdInput').value);
+      const serviceId = parseInt(document.getElementById('jobServSelect').value);
+      const pages = parseInt(document.getElementById('jobPagesInput').value);
+
+      if (!customerId || !serviceId || !pages || pages <= 0) {
+        toast('يرجى ملء جميع بيانات الطلب بشكل صحيح', true);
+        return;
+      }
+
+      if (isBackendConnected) {
+        try {
+          const res = await fetch('/api/job/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customerId, serviceId, pages })
+          });
+          const data = await res.json();
+          if (data.success) {
+            toast(data.message);
+            pushLog(data.message, 'ok');
+            playSound('beep');
+            fetchAppState();
+            return;
+          } else {
+            toast(data.message, true);
+            pushLog(data.message, 'err');
+            return;
+          }
+        } catch (err) {
+          console.warn('Backend submit failed, using client simulation');
+        }
+      }
+
+      // Fallback: Circular Queue Enqueue simulation
+      const cust = appState.customers.find(c => c.id === customerId);
+      if (!cust) {
+        toast(`خطأ: العميل رقم #${customerId} غير مسجل! قم بتسجيله أولاً`, true);
+        pushLog(`[CIRCULAR-QUEUE] Enqueue rejected: Customer #${customerId} does not exist in Linked List`, 'err');
+        return;
+      }
+
+      const serv = appState.services.find(s => s.id === serviceId);
+      if (!serv) return;
+
+      if (appState.queue.count >= appState.queue.capacity) {
+        toast('طابور الطباعة ممتلئ بالكامل! (Queue is Full - 20/20)', true);
+        pushLog('[CIRCULAR-QUEUE] Overflow: Cannot enqueue, queue is full', 'err');
+        return;
+      }
+
+      const jobId = nextJobId++;
+      const total = serv.price * pages;
+      const job = {
+        jobId,
+        customerId,
+        customerName: cust.name,
+        serviceId,
+        serviceName: serv.name,
+        pages,
+        unitPrice: serv.price,
+        total,
+        timestamp: new Date().toLocaleTimeString('ar-EG', { hour12: false })
+      };
+
+      // Circular queue math
+      if (appState.queue.count === 0) {
+        appState.queue.front = 0;
+        appState.queue.rear = 0;
+      } else {
+        appState.queue.rear = (appState.queue.rear + 1) % appState.queue.capacity;
+      }
+      appState.queue.count++;
+
+      // Update slots array
+      appState.queue.slots[appState.queue.rear] = {
+        index: appState.queue.rear,
+        isOccupied: true,
+        isFront: appState.queue.rear === appState.queue.front,
+        isRear: true,
+        job: job
+      };
+      // Fix front/rear flags across slots
+      appState.queue.slots.forEach((s, idx) => {
+        s.isFront = (idx === appState.queue.front && appState.queue.count > 0);
+        s.isRear = (idx === appState.queue.rear && appState.queue.count > 0);
+      });
+      appState.queue.items.push(job);
+
+      toast(`تم حجز أمر الطباعة #${jobId} وإضافته إلى طابور الانتظار بنجاح!`);
+      pushLog(`[CIRCULAR-QUEUE] Enqueue Job #${jobId} at Slot[${appState.queue.rear}] (Customer: ${cust.name}, ${pages} pgs, ${total} EGP)`, 'ok');
+      playSound('beep');
+      openTicketModal(job);
+      renderAll(appState);
+    }
+
+    async function triggerProcessJob() {
+      if (!appState || appState.queue.count === 0) {
+        toast('لا توجد طلبات في طابور الانتظار لمعالجتها', true);
+        pushLog('No waiting jobs to process. History remains empty.', 'err');
+        return;
+      }
+
+      // Show Simulation with Sound
+      const overlay = document.getElementById('simOverlay');
+      const bar = document.getElementById('simProgressBar');
+      const percent = document.getElementById('simPercentText');
+      overlay.style.display = 'flex';
+      bar.style.width = '0%';
+      percent.innerText = '0%';
+
+      playSound('print');
+
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 10;
+        bar.style.width = progress + '%';
+        percent.innerText = progress + '%';
+
+        if (progress >= 100) {
+          clearInterval(interval);
+          setTimeout(async () => {
+            overlay.style.display = 'none';
+
+            if (isBackendConnected) {
+              try {
+                const res = await fetch('/api/job/process', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                  toast(data.message);
+                  pushLog(data.message, 'ok');
+                  playSound('success');
+                  fetchAppState();
+                  return;
+                }
+              } catch (err) {
+                console.warn('Backend process failed, using client simulation');
+              }
+            }
+
+            // Fallback: Circular Queue Dequeue -> Doubly Linked List Insert Head
+            const frontIdx = appState.queue.front;
+            const slotFront = appState.queue.slots[frontIdx];
+            const processedJob = (slotFront && slotFront.job) ? slotFront.job : appState.queue.items.shift();
+
+            // Clear front slot
+            appState.queue.slots[frontIdx] = {
+              index: frontIdx,
+              isOccupied: false,
+              isFront: false,
+              isRear: false,
+              job: null
+            };
+
+            appState.queue.count--;
+            if (appState.queue.count === 0) {
+              appState.queue.front = 0;
+              appState.queue.rear = -1;
+            } else {
+              appState.queue.front = (appState.queue.front + 1) % appState.queue.capacity;
+            }
+
+            // Update slot markers
+            appState.queue.slots.forEach((s, idx) => {
+              s.isFront = (idx === appState.queue.front && appState.queue.count > 0);
+              s.isRear = (idx === appState.queue.rear && appState.queue.count > 0);
+            });
+
+            // Doubly Linked List: Insert at Head
+            if (!appState.history) appState.history = { count: 0, oldestFirst: [], newestFirst: [] };
+            if (!appState.history.newestFirst) appState.history.newestFirst = [];
+            if (!appState.history.oldestFirst) appState.history.oldestFirst = [];
+            appState.history.newestFirst.unshift(processedJob);
+            appState.history.oldestFirst.push(processedJob);
+            appState.history.count = appState.history.oldestFirst.length;
+
+            const msg = `تم اكتمال معالجة وطباعة الطلب #${processedJob.jobId} للعميل #${processedJob.customerId} ونقله لسجل المكتملات`;
+            toast(msg);
+            pushLog(`[DOUBLY-LINKED-LIST] Dequeued from Slot[${frontIdx}] -> Inserted at Head: Job #${processedJob.jobId} (${processedJob.serviceName})`, 'ok');
+            playSound('success');
+            renderAll(appState);
+          }, 200);
+        }
+      }, 50);
+    }
+
+    async function applyPriceChange(serviceId) {
+      const input = document.getElementById(`srvPriceInput_${serviceId}`);
+      const price = parseInt(input.value);
+      if (!price || price <= 0) {
+        toast('الرجاء إدخال سعر صحيح موجب', true);
+        return;
+      }
+
+      if (isBackendConnected) {
+        try {
+          const res = await fetch('/api/price/change', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ serviceId, price })
+          });
+          const data = await res.json();
+          if (data.success) {
+            toast(data.message);
+            pushLog(data.message, 'ok');
+            input.value = '';
+            fetchAppState();
+            return;
+          } else {
+            toast(data.message, true);
+            pushLog(data.message, 'err');
+            return;
+          }
+        } catch (err) {
+          console.warn('Backend price change failed, using client simulation');
+        }
+      }
+
+      // Fallback: Fixed Array & Undo Stack simulation
+      const serv = appState.services.find(s => s.id === serviceId);
+      if (!serv) return;
+
+      const oldPrice = serv.price;
+      if (appState.undoStack.count >= appState.undoStack.capacity) {
+        toast('تحذير: مكدس التراجع ممتلئ (Stack Overflow)', true);
+        return;
+      }
+
+      // Push to Stack
+      appState.undoStack.items.push({ serviceId, oldPrice, newPrice: price });
+      appState.undoStack.count = appState.undoStack.items.length;
+      appState.undoStack.topIndex = appState.undoStack.count - 1;
+
+      // Update Service Array
+      serv.price = price;
+      input.value = '';
+
+      const msg = `تم تحديث سعر خدمة ${serv.name} إلى ${price} EGP وحفظ السعر السابق (${oldPrice} EGP) في Undo Stack`;
+      toast(msg);
+      pushLog(`[FIXED-ARRAY & STACK] Price updated: ${serv.name} -> ${price} EGP | Pushed to Stack Top[${appState.undoStack.topIndex}]`, 'ok');
+      playSound('success');
+      renderAll(appState);
+    }
+
+    async function triggerPriceUndo() {
+      if (isBackendConnected) {
+        try {
+          const res = await fetch('/api/price/undo', { method: 'POST' });
+          const data = await res.json();
+          if (data.success) {
+            toast(data.message);
+            pushLog(data.message, 'ok');
+            fetchAppState();
+            return;
+          } else {
+            toast(data.message, true);
+            pushLog(data.message, 'err');
+            return;
+          }
+        } catch (err) {
+          console.warn('Backend price undo failed, using client simulation');
+        }
+      }
+
+      // Fallback: Stack Pop simulation
+      if (!appState.undoStack || appState.undoStack.count === 0) {
+        toast('مكدس التراجع فارغ (Stack Underflow) - لا توجد أسعار سابقة للتراجع عنها', true);
+        pushLog('[STACK] Pop failed: Undo stack is empty', 'err');
+        return;
+      }
+
+      const popped = appState.undoStack.items.pop();
+      appState.undoStack.count = appState.undoStack.items.length;
+      appState.undoStack.topIndex = appState.undoStack.count - 1;
+
+      const serv = appState.services.find(s => s.id === popped.serviceId);
+      if (serv) {
+        serv.price = popped.oldPrice;
+      }
+
+      const msg = `تم التراجع عن تغيير السعر واستعادة ${popped.oldPrice} EGP لخدمة #${popped.serviceId} (${serv ? serv.name : ''})`;
+      toast(msg);
+      pushLog(`[STACK] Popped top element: Reverted service #${popped.serviceId} to ${popped.oldPrice} EGP`, 'ok');
+      playSound('beep');
+      renderAll(appState);
+    }
+
+    function clearAllFormInputs() {
+      const el = id => document.getElementById(id);
+      if (el('jobCustIdInput')) el('jobCustIdInput').value = '';
+      if (el('jobPagesInput')) el('jobPagesInput').value = '';
+      if (el('livePriceDisplay')) el('livePriceDisplay').innerText = '0 EGP';
+      if (el('newCustId')) el('newCustId').value = '';
+      if (el('newCustName')) el('newCustName').value = '';
+      if (el('searchIdInput')) el('searchIdInput').value = '';
+      if (el('searchFeedback')) el('searchFeedback').innerHTML = '';
+      document.querySelectorAll('[id^="srvPriceInput_"]').forEach(inp => inp.value = '');
+    }
+
+    async function resetWholeSystem() {
+      if (!confirm('هل تريد إعادة تعيين وتصفير النظام بالكامل ومسح كافة البيانات؟')) return;
+
+      clearAllFormInputs();
+      nextJobId = 101;
+
+      if (isBackendConnected) {
+        try {
+          const res = await fetch('/api/reset', { method: 'POST' });
+          const data = await res.json();
+          toast(data.message);
+          pushLog(data.message, 'info');
+          fetchAppState();
+          return;
+        } catch (err) {
+          console.warn('Backend reset failed, resetting client-side');
+        }
+      }
+
+      // Reset to fresh, zeroed state (Queue = 0, History = 0, Revenue = 0 EGP, Pages = 0)
+      appState = createCleanSystemState();
+      toast('تم تصفير وإعادة تعيين النظام بالكامل بنجاح (جميع البيانات = 0)!');
+      pushLog('System reset: All tasks cleared. Queue = 0, History = 0, Revenue = 0 EGP, Pages = 0.', 'info');
+      playSound('beep');
+      renderAll(appState);
+    }
+
+    // Modal Holographic Ticket
+    function openTicketModal(job) {
+      if (!job) return;
+      document.getElementById('ticketJobTitle').innerText = `تذكرة الطباعة #${job.jobId}`;
+      document.getElementById('ticketCustId').innerText = job.customerId;
+      document.getElementById('ticketServiceName').innerText = job.serviceName;
+      document.getElementById('ticketPages').innerText = job.pages + ' صفحة';
+      document.getElementById('ticketUnitPrice').innerText = job.unitPrice + ' EGP';
+      document.getElementById('ticketTotal').innerText = job.total + ' EGP';
+      document.getElementById('ticketBarcodeText').innerText = `UP-JOB-${job.jobId}-SECURE`;
+      document.getElementById('ticketModal').style.display = 'flex';
+      playSound('beep');
+    }
+
+    function closeTicketModal() {
+      document.getElementById('ticketModal').style.display = 'none';
+    }
+
+    function printTicketAction() {
+      window.print();
+    }
+
+    // Dev Team 3D Modal Handlers
+    function openDevTeamModal() {
+      document.getElementById('devTeamModal').style.display = 'flex';
+      playSound('beep');
+    }
+
+    function closeDevTeamModal(e) {
+      if (e) e.stopPropagation();
+      document.getElementById('devTeamModal').style.display = 'none';
+    }
+
+    function handleDevCardTilt(e, card) {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left - rect.width / 2;
+      const y = e.clientY - rect.top - rect.height / 2;
+      card.style.transform = `perspective(700px) rotateX(${-y / 8}deg) rotateY(${x / 8}deg) scale3d(1.03, 1.03, 1.03)`;
+    }
+
+    function resetDevCardTilt(card) {
+      card.style.transform = 'perspective(700px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+    }
+
+    // Team Credentials Security & Password Management
+    const TEAM_SECURITY_PASSWORDS = ['joker2026', 'admin2026', '2026', 'joker', 'admin'];
+
+    function openTeamAuthModal() {
+      document.getElementById('teamAuthInput').value = '';
+      document.getElementById('authErrorMsg').style.display = 'none';
+      document.getElementById('teamAuthModal').style.display = 'flex';
+      setTimeout(() => document.getElementById('teamAuthInput').focus(), 100);
+      playSound('beep');
+    }
+
+    function closeTeamAuthModal() {
+      document.getElementById('teamAuthModal').style.display = 'none';
+    }
+
+    function verifyTeamPassword() {
+      const entered = document.getElementById('teamAuthInput').value.trim();
+      const errBox = document.getElementById('authErrorMsg');
+
+      if (TEAM_SECURITY_PASSWORDS.includes(entered.toLowerCase())) {
+        closeTeamAuthModal();
+        openTeamEditModal();
+        toast('تم التحقق من الصلاحية الأمنية بنجاح! تم فتح قفل التعديل.');
+        pushLog('Security Pass: Authorized administrator access granted.', 'ok');
+      } else {
+        errBox.innerText = '⛔ كلمة المرور غير صحيحة! تم رفض الوصول لحماية خصوصية الفريق.';
+        errBox.style.display = 'block';
+        playSound('beep');
+        pushLog('SECURITY ALERT: Unauthorized password attempt on team credentials.', 'err');
+      }
+    }
+
+    function openTeamEditModal() {
+      document.getElementById('editLeaderInput').value = document.getElementById('leaderNameDisplay').innerText;
+      document.getElementById('editMember2Input').value = document.getElementById('member2NameDisplay').innerText;
+      document.getElementById('editMember3Input').value = document.getElementById('member3NameDisplay').innerText;
+      document.getElementById('teamEditModal').style.display = 'flex';
+    }
+
+    function closeTeamEditModal() {
+      document.getElementById('teamEditModal').style.display = 'none';
+    }
+
+    function saveTeamNamesChanges() {
+      const leader = document.getElementById('editLeaderInput').value.trim();
+      const m2 = document.getElementById('editMember2Input').value.trim();
+      const m3 = document.getElementById('editMember3Input').value.trim();
+
+      if (leader) {
+        document.getElementById('leaderNameDisplay').innerText = leader;
+        localStorage.setItem('team_leader_name', leader);
+      }
+      if (m2) {
+        document.getElementById('member2NameDisplay').innerText = m2;
+        localStorage.setItem('team_member2_name', m2);
+      }
+      if (m3) {
+        document.getElementById('member3NameDisplay').innerText = m3;
+        localStorage.setItem('team_member3_name', m3);
+      }
+
+      closeTeamEditModal();
+      toast('تم حفظ وتحديث بيانات الفريق بنجاح في النظام!');
+      pushLog('Team credentials updated and securely saved to system storage.', 'ok');
+      playSound('success');
+    }
+
+    function loadSavedTeamNames() {
+      const leader = localStorage.getItem('team_leader_name');
+      const m2 = localStorage.getItem('team_member2_name');
+      const m3 = localStorage.getItem('team_member3_name');
+      if (leader) document.getElementById('leaderNameDisplay').innerText = leader;
+      if (m2) document.getElementById('member2NameDisplay').innerText = m2;
+      if (m3) document.getElementById('member3NameDisplay').innerText = m3;
+    }
+
+    // Quick Demo Scenario
+    async function loadDemoScenario() {
+      pushLog('Initializing complete 3D demo scenario...', 'info');
+
+      if (isBackendConnected) {
+        try {
+          // 1. Register customers
+          await fetch('/api/customer/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: 11, name: 'Mona Ali' })
+          });
+          await fetch('/api/customer/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: 12, name: 'Omar Khaled' })
+          });
+          // 2. Submit jobs
+          await fetch('/api/job/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customerId: 11, serviceId: 1, pages: 4 })
+          });
+          await fetch('/api/job/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customerId: 11, serviceId: 2, pages: 2 })
+          });
+          await fetch('/api/job/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customerId: 12, serviceId: 3, pages: 1 })
+          });
+          // 3. Process job 101 into history
+          await fetch('/api/job/process', { method: 'POST' });
+          // 4. Change price of service 1 to 3 EGP (Undo stack ready)
+          await fetch('/api/price/change', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ serviceId: 1, price: 3 })
+          });
+
+          toast('تم تحميل السيناريو التجريبي ثلاثي الأبعاد بنجاح!');
+          pushLog('Demo scenario ready: Customers, Jobs, 3D Queue, and Price Undo ready.', 'ok');
+          fetchAppState();
+          return;
+        } catch (err) {
+          console.warn('Backend demo call failed, using client simulation');
+        }
+      }
+
+      // Fallback: Populate appState directly
+      appState = createDemoSystemState();
+      nextJobId = 104;
+
+      toast('تم تحميل السيناريو التجريبي ثلاثي الأبعاد بنجاح!');
+      pushLog('Demo scenario ready: Customers, Jobs, 3D Queue, and Price Undo ready.', 'ok');
+      playSound('success');
+      renderAll(appState);
+    }
+
+    // Initialize Everything
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSavedTeamNames();
+      init3DBackground();
+      init3DQueue();
+      // Render immediately with memory state (Cards and UI always visible on any host)
+      renderAll(appState);
+      fetchAppState();
+      setInterval(fetchAppState, 3000);
+    });
+  </script>
+</body>
+</html>
